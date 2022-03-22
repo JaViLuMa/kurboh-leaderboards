@@ -91,7 +91,7 @@ async def auto_send():
     for count, info in enumerate(infos):
         embed.add_field(name=count + 1, value=f'{info["username"]} - {info["pp"]}', inline=False)
 
-    channel = await bot.fetch_channel('954512449040678932')
+    channel = await bot.fetch_channel('950083802275917965')
 
     await channel.send(embed=embed, delete_after=3600.0)
 
