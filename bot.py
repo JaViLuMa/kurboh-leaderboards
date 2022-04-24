@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import discord
 import requests
 
@@ -10,23 +11,10 @@ load_dotenv()
 API_URL           = "https://osu.ppy.sh/api/v2"
 TOKEN_URL         = "https://osu.ppy.sh/oauth/token"
 DISCORD_TOKEN     = os.getenv('DISCORD_TOKEN')
+SHEET_URL_FULL    = os.getenv('SHEET_URL')
 OSU_CLIENT_SECRET = os.getenv('OSU_CLIENT_SECRET')
-ID_s = [
-        933020,
-        14268402,
-        15601511,
-        19713229,
-        8778784,
-        15565433,
-        24069825,
-        17440873,
-        22730236,
-        18688996,
-        28674381,
-        3832576,
-        15243233,
-        23303765
-]
+SHEET_URL_CLEANUP = SHEET_URL_FULL.replace("/edit#gid=", "/export?format=csv&gid=")
+
 
 bot = discord.Client()
 
@@ -55,6 +43,7 @@ def osu_api_things():
         "Authorization": f"Bearer {token}"
     }
 
+    ID_s = pd.read_csv(SHEET_URL_CLEANUP).ID.to_list()
 
     for id in ID_s:
         response = requests.get(f"{API_URL}/users/{id}/osu", headers=headers)
