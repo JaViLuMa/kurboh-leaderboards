@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import gspread
 import discord
 import requests
 
@@ -8,15 +8,16 @@ from discord.ext import tasks, commands
 
 load_dotenv()
 
-API_URL           = "https://osu.ppy.sh/api/v2"
-TOKEN_URL         = "https://osu.ppy.sh/oauth/token"
-DISCORD_TOKEN     = os.getenv('DISCORD_TOKEN')
-SHEET_URL_FULL    = os.getenv('SHEET_URL')
-OSU_CLIENT_SECRET = os.getenv('OSU_CLIENT_SECRET')
-SHEET_URL_CLEANUP = SHEET_URL_FULL.replace("/edit#gid=", "/export?format=csv&gid=")
+API_URL            = "https://osu.ppy.sh/api/v2"
+TOKEN_URL          = "https://osu.ppy.sh/oauth/token"
+DISCORD_TOKEN      = os.getenv('DISCORD_TOKEN')
+OSU_CLIENT_SECRET  = os.getenv('OSU_CLIENT_SECRET')
+DISCORD_CHANNEL_ID = os.getenv('DISCORD_CHANNEL_ID_MAIN')
+GOOGLE_SPREADS     = gspread.service_account(filename='./data.json')
+SPECIFIC_SHEET     = GOOGLE_SPREADS.open("kurbohLeaderboard")
+WORKSHEET          = SPECIFIC_SHEET.get_worksheet(0)
 
-
-bot = discord.Client()
+bot = commands.Bot(command_prefix="!!")
 
 
 def get_token():
@@ -32,18 +33,20 @@ def get_token():
     return response.json().get("access_token")
 
 
+token = get_token()
+
+headers = {
+    "Content-Type":  "application/json",
+    "Accept":        "application/json",
+    "Authorization": f"Bearer {token}"
+}
+
+
 def osu_api_things():
     infos = []
 
-    token = get_token()
-
-    headers = {
-        "Content-Type":  "application/json",
-        "Accept":        "application/json",
-        "Authorization": f"Bearer {token}"
-    }
-
-    ID_s = pd.read_csv(SHEET_URL_CLEANUP).ID.to_list()
+    ID_s = WORKSHEET.col_values(1)
+    ID_s.pop(0)
 
     for id in ID_s:
         response = requests.get(f"{API_URL}/users/{id}/osu", headers=headers)
@@ -61,11 +64,46 @@ def osu_api_things():
     return infos
 
 
+def nextAvailableRow(worksheet):
+  filteredStringList = list(filter(None, worksheet.col_values(1)))
+
+  return str(len(filteredStringList) + 1)
+
+
+def playerChecker(id):
+    if id.isdecimal() == False:
+        return "Please enter a valid osu! ID."
+    else:
+        try:
+            response     = requests.get(f"{API_URL}/users/{id}/osu", headers=headers)
+
+            matchingCell = WORKSHEET.find(id)
+
+            if matchingCell:
+                return f"{id} is already in the leaderboard."
+
+            pp      = response.json().get("statistics").get("pp")
+
+            nextRow = nextAvailableRow(WORKSHEET)
+
+            WORKSHEET.update_acell(f"A{nextRow}", id)
+
+            return "Player has been successfully added"
+
+        except:
+            return "Please add a player that isn't restricted, deleted or doesn't exist. Also make sure you didn't make any typos!"
+
+
 @bot.event
 async def on_ready():
     print("I am ready!")
     
     auto_send.start()
+
+
+@bot.command()
+async def id(ctx, arg):
+	await ctx.send(playerChecker(arg))
 
 
 @tasks.loop(minutes=60.0)
@@ -80,7 +118,7 @@ async def auto_send():
     for count, info in enumerate(infos):
         embed.add_field(name=count + 1, value=f'{info["username"]} - {info["pp"]}', inline=False)
 
-    channel = await bot.fetch_channel('950083802275917965')
+    channel = await bot.fetch_channel(DISCORD_CHANNEL_ID)
 
     await channel.send(embed=embed, delete_after=3600.0)
 
