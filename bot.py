@@ -64,13 +64,13 @@ def osu_api_things():
     return infos
 
 
-def nextAvailableRow(worksheet):
+def next_available_row(worksheet):
   filteredStringList = list(filter(None, worksheet.col_values(1)))
 
   return str(len(filteredStringList) + 1)
 
 
-def playerChecker(id):
+def player_checker(id):
     if id.isdecimal() == False:
         return "Please enter a valid osu! ID."
     else:
@@ -103,7 +103,7 @@ async def on_ready():
 
 @bot.command()
 async def id(ctx, arg):
-	await ctx.send(playerChecker(arg))
+	await ctx.send(player_checker(arg))
 
 
 @tasks.loop(minutes=60.0)
