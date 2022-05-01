@@ -84,7 +84,7 @@ def player_checker(id):
 
             pp      = response.json().get("statistics").get("pp")
 
-            nextRow = nextAvailableRow(WORKSHEET)
+            nextRow = next_available_row(WORKSHEET)
 
             WORKSHEET.update_acell(f"A{nextRow}", id)
 
