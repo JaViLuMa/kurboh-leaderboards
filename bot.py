@@ -46,7 +46,6 @@ def osu_api_things():
     infos = []
 
     ID_s = WORKSHEET.col_values(1)
-    ID_s.pop(0)
 
     for id in ID_s:
         response = requests.get(f"{API_URL}/users/{id}/osu", headers=headers)
@@ -64,15 +63,9 @@ def osu_api_things():
     return infos
 
 
-def next_available_row(worksheet):
-  filteredStringList = list(filter(None, worksheet.col_values(1)))
-
-  return str(len(filteredStringList) + 1)
-
-
 def player_checker(id):
     if id.isdecimal() == False:
-        return "Please enter a valid osu! ID."
+        return "Please enter a valid osu! ID (example: 123456)."
     else:
         try:
             response     = requests.get(f"{API_URL}/users/{id}/osu", headers=headers)
@@ -84,9 +77,7 @@ def player_checker(id):
 
             pp      = response.json().get("statistics").get("pp")
 
-            nextRow = next_available_row(WORKSHEET)
-
-            WORKSHEET.update_acell(f"A{nextRow}", id)
+            WORKSHEET.append_row([id], value_input_option="USER_ENTERED")
 
             return "Player has been successfully added"
 
